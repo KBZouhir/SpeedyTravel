@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="colorPrimaryDark">#2D76AD</color>
+    <color name="colorPrimaryDark2">#38648A</color>
+    <color name="colorPrimaryDark3">#DA3E6CB1</color>
+    <color name="colorPrimary">#0265B1</color>
+    <color name="colorPrimary2">#CE0443A2</color>
+    <color name="colorAccent">#D53EC6DF</color>
+    <color name="colorGoogle">#eee</color>
+    <color name="white">#fff</color>
+    <color name="colorFacebook">#3D9EE9</color>
+    <color name="red">#D0EB5446</color>
+    <color name="orang">#D3E6B264</color>
+    <color name="move">#193EF7</color>
+    <color name="green">#60FA67</color>
+    <color name="green_light">#E44ABE79</color>
+    <color name="gray">#ADAEAF</color>
+</resources>
