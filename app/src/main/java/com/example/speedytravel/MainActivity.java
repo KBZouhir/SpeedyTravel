@@ -82,6 +82,7 @@ public class MainActivity extends AppCompatActivity {
         StrictMode.setThreadPolicy(policy);
 
         ctx = getApplicationContext();
+        Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx));
 
         if (!CheckPermissions()) {
             RequestPermissions();
@@ -116,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
         mapController.setZoom(10.0);
         map.setTileSource(TileSourceFactory.MAPNIK);
         map.setMultiTouchControls(true);
-        map.setMinZoomLevel(13.0);
+        map.setMinZoomLevel(5.0);
         map.setMaxZoomLevel(19.0);
         BoundingBox boundingBox = new BoundingBox(36.584819, 6.897789, 36.151927, 6.516044);
         map.setScrollableAreaLimitDouble(boundingBox);
