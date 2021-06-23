@@ -70,19 +70,21 @@ public class MainActivity extends AppCompatActivity {
     double longitude;
     String provider;
     Context ctx;
+    Polyline myPath;
 
     @SuppressLint("UseCompatLoadingForDrawables")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-//
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(policy);
 
         ctx = getApplicationContext();
         Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx));
+
+        setContentView(R.layout.activity_main);
+
+//
 
         if (!CheckPermissions()) {
             RequestPermissions();
@@ -91,7 +93,6 @@ public class MainActivity extends AppCompatActivity {
         map = (MapView) findViewById(R.id.map);
         ImageButton goToMyLocalisation = findViewById(R.id.goToMyLocalisation);
         final ImageButton goToMarker = findViewById(R.id.goToMarker);
-
 
 //        ==================
         final ImageButton zoomin = findViewById(R.id.zoomin);
@@ -114,13 +115,13 @@ public class MainActivity extends AppCompatActivity {
         });
 //          ============
         mapController = map.getController();
-        mapController.setZoom(10.0);
+        mapController.setZoom(17.0);
         map.setTileSource(TileSourceFactory.MAPNIK);
         map.setMultiTouchControls(true);
         map.setMinZoomLevel(5.0);
         map.setMaxZoomLevel(19.0);
-        BoundingBox boundingBox = new BoundingBox(36.584819, 6.897789, 36.151927, 6.516044);
-        map.setScrollableAreaLimitDouble(boundingBox);
+        myPath = new Polyline(map);
+
         locationMethode(ctx);
 
         goToMyLocalisation.setOnClickListener(e -> {
@@ -135,11 +136,12 @@ public class MainActivity extends AppCompatActivity {
             AnimateBotton(goToMarker);
             if (null != destinationPoint && null != myStartPoint) {
                 GetRoute(myStartPoint, destinationPoint);
-
+            } else {
+                Toast.makeText(ctx, "opps!" + destinationPoint + "\n" + myStartPoint, Toast.LENGTH_SHORT).show();
             }
         });
 
-
+        getAllNodes();
     }
 
     @SuppressLint("UseCompatLoadingForDrawables")
@@ -163,10 +165,7 @@ public class MainActivity extends AppCompatActivity {
         destinationMarker = new Marker(map);
         startMarker.setIcon(getResources().getDrawable(R.drawable.ic_twotone_my_location_24));
         startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER);
-        destinationMarker.setIcon(getResources().getDrawable(R.drawable.ic_twotone_emoji_flags_24));
-        destinationMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER);
         map.getOverlays().add(startMarker);
-        map.getOverlays().add(destinationMarker);
 
 
         if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -184,9 +183,9 @@ public class MainActivity extends AppCompatActivity {
             latitude = lastKnownLocation.getLatitude();
             longitude = lastKnownLocation.getLongitude();
             //altitude = lastKnownLocation.getAltitude();
-            GeoPoint lastGeoPoint = new GeoPoint(latitude, longitude);
-//            mapController.setCenter(lastGeoPoint);
-            startMarker.setPosition(lastGeoPoint);
+            myStartPoint = new GeoPoint(latitude, longitude);
+            mapController.setCenter(myStartPoint);
+            startMarker.setPosition(myStartPoint);
         }
 
 
@@ -214,7 +213,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
         };
-        locationManager.requestLocationUpdates(provider, 10000, 100, locationListener);
+        locationManager.requestLocationUpdates(provider, 5000, 10, locationListener);
         MapEventsReceiver mReceive = new MapEventsReceiver() {
             @Override
             public boolean singleTapConfirmedHelper(GeoPoint p) {
@@ -226,8 +225,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean longPressHelper(GeoPoint p) {
                 destinationPoint = p;
-                map.invalidate();
                 destinationMarker.setPosition(p);
+//                destinationMarker.setIcon(getResources().getDrawable(R.drawable.target));
+                destinationMarker.setImage(getResources().getDrawable(R.drawable.target));
+                destinationMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER);
+                map.getOverlays().add(destinationMarker);
+                map.invalidate();
                 Toast.makeText(ctx, "Your destination is ready!", Toast.LENGTH_SHORT).show();
 
                 return false;
@@ -254,18 +257,56 @@ public class MainActivity extends AppCompatActivity {
             JSONObject jsonObj = new JSONObject(json);
             JSONArray pathJsonArray = jsonObj.getJSONObject("data").getJSONArray("path");
             for (int i = 0; i < pathJsonArray.length(); i++) {
-                String name = pathJsonArray.getJSONObject(i).getString("name");
-
                 String lon = pathJsonArray.getJSONObject(i).getString("lon");
                 String lat = pathJsonArray.getJSONObject(i).getString("lat");
                 GeoPoint point = new GeoPoint(Double.parseDouble(lat), Double.parseDouble(lon));
                 if (i == 0) {
                     mapController.setCenter(point);
                 }
-                drawMarker(point, R.drawable.ic_twotone_bus_alert_24, name);
+
                 path.add(point);
             }
+            String time = jsonObj.getJSONObject("data").getString("time");
+            myPath.setTitle("Time : " + time);
+
             return path;
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public JSONArray getStationFromJson(String json) {
+        try {
+            JSONObject jsonObj = new JSONObject(json);
+            JSONArray pathJsonArray = jsonObj.getJSONArray("data");
+            for (int i = 0; i < pathJsonArray.length(); i++) {
+
+                String name = " Station : " + pathJsonArray.getJSONObject(i).getString("name") + "\n\nLines : ";
+
+                String lon = pathJsonArray.getJSONObject(i).getString("lon");
+                String lat = pathJsonArray.getJSONObject(i).getString("lat");
+                JSONArray lines = pathJsonArray.getJSONObject(i).getJSONArray("lines");
+
+                GeoPoint point = new GeoPoint(Double.parseDouble(lat), Double.parseDouble(lon));
+
+
+                boolean bus = true;
+                for (int j = 0; j < lines.length(); j++) {
+                    if (lines.getJSONObject(j).getInt("type_id") == 2) {
+                        bus = false;
+                    }
+                    name = name + "\n" + lines.getJSONObject(j).getString("name");
+                }
+
+                if (bus) drawMarker(point, R.drawable.ic_baseline_directions_bus_24, name);
+
+                else drawMarker(point, R.drawable.ic_baseline_tram_24, name);
+
+
+            }
+
+            return pathJsonArray;
         } catch (JSONException e) {
             e.printStackTrace();
             return null;
@@ -295,20 +336,38 @@ public class MainActivity extends AppCompatActivity {
         StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
                 response -> {
                     String str = response;
-                    List<GeoPoint> pathPoint = new ArrayList<>();
+                    List<GeoPoint> pathPoint = getPathFromJson(str);
 
-                    pathPoint = getPathFromJson(str);
-                    Polyline myPath = new Polyline(map);
                     myPath.setPoints(pathPoint);
-                    myPath.setColor(Color.CYAN);
-
-                    map.getOverlayManager().add(myPath);
+                    myPath.setColor(Color.MAGENTA);
+                    map.getOverlayManager().remove(1);
+                    map.getOverlayManager().add(1, myPath);
                     map.invalidate();
 
                     pd.hide();
                 }, error -> {
+            pd.hide();
+            Toast.makeText(MainActivity.this, "did not work", Toast.LENGTH_SHORT).show();
+        });
+
+        queue.add(stringRequest);
+
+    }
+
+    public void getAllNodes() {
+        progress();
+        RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+        String url = "Https://a-star-pfe.mogh-apps.com/api/nodes";
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                response -> {
+                    getStationFromJson(response);
+                    locationMethode(ctx);
+
+                    map.invalidate();
                     pd.hide();
-                    Toast.makeText(MainActivity.this, "did not work", Toast.LENGTH_SHORT).show();
+                }, error -> {
+            pd.hide();
+            Toast.makeText(MainActivity.this, "did not work", Toast.LENGTH_SHORT).show();
         });
 
         queue.add(stringRequest);
