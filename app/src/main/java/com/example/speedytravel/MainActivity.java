@@ -27,6 +27,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.Request;
@@ -71,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
     String provider;
     Context ctx;
     Polyline myPath;
-
+    TextView result;
     @SuppressLint("UseCompatLoadingForDrawables")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
         if (!CheckPermissions()) {
             RequestPermissions();
         }
-
+        result=findViewById(R.id.result);
         map = (MapView) findViewById(R.id.map);
         ImageButton goToMyLocalisation = findViewById(R.id.goToMyLocalisation);
         final ImageButton goToMarker = findViewById(R.id.goToMarker);
@@ -137,7 +138,8 @@ public class MainActivity extends AppCompatActivity {
             if (null != destinationPoint && null != myStartPoint) {
                 GetRoute(myStartPoint, destinationPoint);
             } else {
-                Toast.makeText(ctx, "opps!" + destinationPoint + "\n" + myStartPoint, Toast.LENGTH_SHORT).show();
+                Toast.makeText(ctx, "ops!!\n You should specify your destination first.\n" +
+                        "Click a long to confirm your destination !!", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -217,7 +219,7 @@ public class MainActivity extends AppCompatActivity {
         MapEventsReceiver mReceive = new MapEventsReceiver() {
             @Override
             public boolean singleTapConfirmedHelper(GeoPoint p) {
-                Toast.makeText(ctx, "Click a log to confirm your destination !!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(ctx, "Click a long to confirm your destination !!", Toast.LENGTH_SHORT).show();
 
                 return false;
             }
@@ -226,8 +228,7 @@ public class MainActivity extends AppCompatActivity {
             public boolean longPressHelper(GeoPoint p) {
                 destinationPoint = p;
                 destinationMarker.setPosition(p);
-//                destinationMarker.setIcon(getResources().getDrawable(R.drawable.target));
-                destinationMarker.setImage(getResources().getDrawable(R.drawable.target));
+                destinationMarker.setIcon(getResources().getDrawable(R.drawable.ic_twotone_emoji_flags_24));
                 destinationMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER);
                 map.getOverlays().add(destinationMarker);
                 map.invalidate();
@@ -251,6 +252,7 @@ public class MainActivity extends AppCompatActivity {
         map.getOverlays().add(myMarker);
     }
 
+    @SuppressLint("SetTextI18n")
     public List<GeoPoint> getPathFromJson(String json) {
         try {
             List<GeoPoint> path = new ArrayList<GeoPoint>();
@@ -267,13 +269,29 @@ public class MainActivity extends AppCompatActivity {
                 path.add(point);
             }
             String time = jsonObj.getJSONObject("data").getString("time");
-            myPath.setTitle("Time : " + time);
+            myPath.setTitle("Time : " +time);
+            result.setText("Tamp de target : \n " +MtoHM(time) );
 
             return path;
         } catch (JSONException e) {
             e.printStackTrace();
             return null;
         }
+    }
+
+    private String MtoHM(String time) {
+        int t=(int)Double.parseDouble(time);
+
+        int hours = t / 60; //since both are ints, you get an int
+        int minutes = t % 60;
+        String res="";
+        if (hours>0){
+           res= hours+"h ";
+        }
+        if (minutes>0){
+            res= res+minutes+"mn";
+        }
+        return res;
     }
 
     public JSONArray getStationFromJson(String json) {
